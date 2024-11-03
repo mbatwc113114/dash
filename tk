@@ -1,0 +1,63 @@
+import requests
+import time
+import threading
+import tkinter as tk
+
+# Replace with the URL you want to scrape
+url = 'http://192.168.130.145/'  # Change this to the actual URL
+
+def get_html_content():
+    try:
+        # Send a GET request to the URL
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an error for bad responses
+        return response.text  # Return the entire HTML content
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+
+def update_sensor_data():
+    global sensor_values
+    while True:
+        html_content = get_html_content()
+        if html_content is not None:
+            try:
+                # Assuming the HTML content is a comma-separated string of integers
+                sensor_values = list(map(int, html_content.split(',')))
+                print(sensor_values)  # Print the sensor values
+                update_sliders(sensor_values)  # Update the sliders with new values
+            except ValueError:
+                print("Error parsing sensor values.")
+        else:
+            print("Failed to retrieve HTML content.")
+        
+        time.sleep(5)  # Wait for 5 seconds before the next request
+
+def update_sliders(values):
+    for i, value in enumerate(values):
+        if i < len(sliders):
+            sliders[i].set(value)  # Update the slider value
+
+def main():
+    global sliders
+    sensor_values = [0, 0, 0, 0]  # Initialize sensor values
+
+    # Create the main Tkinter window
+    root = tk.Tk()
+    root.title("Sensor Data Sliders")
+
+    # Create sliders for each sensor value
+    sliders = []
+    for i in range(4):  # Assuming there are 4 sensor values
+        slider = tk.Scale(root, from_=0, to=4095, orient=tk.HORIZONTAL, label=f'Sensor {i+1}')
+        slider.pack()
+        sliders.append(slider)
+
+    # Start the sensor data update thread
+    threading.Thread(target=update_sensor_data, daemon=True).start()
+
+    # Start the Tkinter main loop
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()
